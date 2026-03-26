@@ -3,7 +3,17 @@ const User = require("../models/user");
 
 exports.protect = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    let token;
+
+    // ✅ 1. From header
+    if (req.headers.authorization?.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    // ✅ 2. Fallback (cookie)
+    if (!token && req.cookies?.token) {
+      token = req.cookies.token;
+    }
 
     if (!token) {
       return res.status(401).json({ message: "Not authorized" });
@@ -11,14 +21,9 @@ exports.protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 Fetch full user from DB
     const user = await User.findById(decoded.id).select("-password");
 
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
-    }
-
-    req.user = user; // ✅ full user data
+    req.user = user;
 
     next();
   } catch (err) {

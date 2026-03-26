@@ -60,11 +60,13 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
+
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
@@ -75,16 +77,10 @@ exports.login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // ✅ SET COOKIE
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true, // true in production
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
+    // ✅ SEND TOKEN (NO COOKIE DEPENDENCY)
     res.json({
       message: "Login successful ✅",
+      token,
       user: {
         id: user._id,
         email: user.email,
