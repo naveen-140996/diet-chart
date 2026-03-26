@@ -12,13 +12,11 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://soi-dietchart.vercel.app"
-  ],
-  credentials: true
-}));
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://soi-dietchart.vercel.app"
+];
 
 app.use(cors({
   origin: function (origin, callback) {
