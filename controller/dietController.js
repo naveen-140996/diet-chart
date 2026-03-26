@@ -48,15 +48,32 @@ exports.getDiet = async (req, res) => {
 
 exports.updateDay = async (req, res) => {
   try {
-    const { index, data } = req.body;
+    const { index, updatedData } = req.body;
 
     const diet = await Diet.findOne({ user: req.user._id });
 
-    diet.entries[index] = data;
+    if (!diet) {
+      return res.status(404).json({ message: "Diet not found" });
+    }
+
+    // ✅ STEP 1: Update specific entry
+    diet.entries[index] = {
+      ...diet.entries[index]._doc,
+      ...updatedData,
+    };
+
+    // ✅ STEP 2: Recalculate day numbers
+    diet.entries = diet.entries.map((item, i) => ({
+      ...item._doc,
+      day: i + 1,
+    }));
 
     await diet.save();
 
-    res.json({ message: "Updated ✅" });
+    res.json({
+      message: "Updated ✅",
+      diet,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -68,11 +85,18 @@ exports.deleteDay = async (req, res) => {
 
     const diet = await Diet.findOne({ user: req.user._id });
 
+    // remove item
     diet.entries.splice(index, 1);
+
+    // 🔥 FIX: reassign day numbers
+    diet.entries = diet.entries.map((item, i) => ({
+      ...item._doc,
+      day: i + 1,
+    }));
 
     await diet.save();
 
-    res.json({ message: "Deleted ✅", diet });
+    res.json({ diet });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
