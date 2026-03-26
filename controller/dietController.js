@@ -61,3 +61,19 @@ exports.updateDay = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.deleteDay = async (req, res) => {
+  try {
+    const { index } = req.body;
+
+    const diet = await Diet.findOne({ user: req.user._id });
+
+    diet.entries.splice(index, 1);
+
+    await diet.save();
+
+    res.json({ message: "Deleted ✅", diet });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
