@@ -91,7 +91,24 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
     res.status(500).json({ message: err.message });
+  }
+};
+
+exports.logout = (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,       // same as login
+      sameSite: "none",   // same as login
+    });
+
+    res.status(200).json({
+      message: "Logged out successfully ✅",
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
