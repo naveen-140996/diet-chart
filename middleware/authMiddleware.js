@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/user");
 
-exports.protect = (req, res, next) => {
+exports.protect = async (req, res, next) => {
   try {
     const token = req.cookies.token;
 
@@ -10,7 +11,14 @@ exports.protect = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded;
+    // 🔥 Fetch full user from DB
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    req.user = user; // ✅ full user data
 
     next();
   } catch (err) {
