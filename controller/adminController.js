@@ -26,15 +26,55 @@ exports.adminLogin = async (req, res) => {
 // 📊 DASHBOARD DATA
 exports.getDashboard = async (req, res) => {
   try {
-    const users = await User.find();
-    const diets = await Diet.find().populate("user");
+    // 🔥 QUERY PARAMS
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const search = req.query.search || "";
 
+    const skip = (page - 1) * limit;
+
+    // 🔍 STEP 1: SEARCH USERS
+    const userFilter = {
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ],
+    };
+
+    const users = await User.find(userFilter).select("_id name email");
+
+    const userIds = users.map((u) => u._id);
+
+    // 🔥 STEP 2: FETCH DIETS WITH PAGINATION
+    const diets = await Diet.find({
+      user: { $in: userIds },
+    })
+      .populate("user", "name email")
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    // 🔢 TOTAL COUNT (for pagination)
+    const total = await Diet.countDocuments({
+      user: { $in: userIds },
+    });
+
+    // 🔥 STEP 3: FORMAT DATA
     const formatted = diets.map((d) => {
       const entries = d.entries || [];
 
       const startWeight = entries[0]?.weight || null;
       const currentWeight =
         entries[entries.length - 1]?.weight || null;
+
+      // 📊 PROGRESS CALCULATION
+      let progress = 0;
+      if (startWeight && d.targetWeight && currentWeight) {
+        progress =
+          ((startWeight - currentWeight) /
+            (startWeight - d.targetWeight)) *
+          100;
+      }
 
       return {
         userId: d.user?._id,
@@ -46,6 +86,7 @@ exports.getDashboard = async (req, res) => {
 
         startWeight,
         currentWeight,
+        progress: Number(progress.toFixed(1)),
 
         entries: entries.map((e) => ({
           day: e.day,
@@ -57,14 +98,21 @@ exports.getDashboard = async (req, res) => {
       };
     });
 
-    const totalEntries = diets.reduce(
-      (acc, d) => acc + d.entries.length,
-      0
-    );
+    // 🔥 STEP 4: TOTAL STATS
+    const totalUsers = await User.countDocuments();
+    const totalEntries = await Diet.aggregate([
+      { $unwind: "$entries" },
+      { $count: "total" },
+    ]);
 
     res.json({
-      totalUsers: users.length,
-      totalEntries,
+      totalUsers,
+      totalEntries: totalEntries[0]?.total || 0,
+
+      page,
+      totalPages: Math.ceil(total / limit),
+      totalRecords: total,
+
       diets: formatted,
     });
   } catch (err) {
