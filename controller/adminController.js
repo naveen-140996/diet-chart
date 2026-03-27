@@ -29,6 +29,34 @@ exports.getDashboard = async (req, res) => {
     const users = await User.find();
     const diets = await Diet.find().populate("user");
 
+    const formatted = diets.map((d) => {
+      const entries = d.entries || [];
+
+      const startWeight = entries[0]?.weight || null;
+      const currentWeight =
+        entries[entries.length - 1]?.weight || null;
+
+      return {
+        userId: d.user?._id,
+        name: d.user?.name,
+        email: d.user?.email,
+
+        totalDays: entries.length,
+        targetWeight: d.targetWeight,
+
+        startWeight,
+        currentWeight,
+
+        entries: entries.map((e) => ({
+          day: e.day,
+          weight: e.weight,
+          morning: e.morning,
+          lunch: e.lunch,
+          dinner: e.dinner,
+        })),
+      };
+    });
+
     const totalEntries = diets.reduce(
       (acc, d) => acc + d.entries.length,
       0
@@ -37,7 +65,7 @@ exports.getDashboard = async (req, res) => {
     res.json({
       totalUsers: users.length,
       totalEntries,
-      diets,
+      diets: formatted,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
