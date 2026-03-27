@@ -5,13 +5,9 @@ exports.protect = async (req, res, next) => {
   try {
     let token;
 
-    // ✅ 1. From header
     if (req.headers.authorization?.startsWith("Bearer")) {
       token = req.headers.authorization.split(" ")[1];
-    }
-
-    // ✅ 2. Fallback (cookie)
-    if (!token && req.cookies?.token) {
+    } else if (req.cookies?.token) {
       token = req.cookies.token;
     }
 
@@ -21,12 +17,18 @@ exports.protect = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.id).select("-password");
+    // 🔥 FIX HERE
+    const user = await User.findById(decoded.id || decoded._id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
 
     req.user = user;
 
     next();
   } catch (err) {
+    console.log(err); // add this for debugging
     res.status(401).json({ message: "Invalid token" });
   }
 };
