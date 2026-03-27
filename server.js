@@ -15,7 +15,8 @@ app.use(express.json());
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://soi-dietchart.vercel.app"
+  "https://soi-dietchart.vercel.app",
+  "https://soi-admin-dashboard.vercel.app"
 ];
 
 app.use(cors({
