@@ -123,19 +123,32 @@ exports.getDashboard = async (req, res) => {
 // 🎬 ADD CONTENT
 exports.addContent = async (req, res) => {
   try {
-    const { type, url } = req.body;
+    const { type, url, thumbnail } = req.body;
 
-    const content = new Content({ type, url });
+    if (!type || !url) {
+      return res.status(400).json({
+        message: "Type and URL required",
+      });
+    }
+
+    const content = new Content({
+      type,
+      url,
+      thumbnail, // ✅ SAVE THUMBNAIL
+    });
+
     await content.save();
 
-    res.json({ message: "Content added" });
+    res.json({
+      message: "Content added successfully",
+      content,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// 📺 GET CONTENT
 exports.getContent = async (req, res) => {
-  const data = await Content.find();
+  const data = await Content.find().sort({ createdAt: -1 });
   res.json(data);
 };
